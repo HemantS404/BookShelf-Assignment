@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<body>
+    <div class="error" style="color: red;border-style: dashed;visibility: hidden;"></div>
+    <div style="display: flex;">
+        <div class="data card" style="width: 50%;text-align: center;background-color: rgb(210, 245, 250);" >
+            <div class="card-body">
+            <div class="form-group">
+                <h5 class="card-title">Title<input type="text" class="name form-control"></h5>
+                
+              </div>
+              <div class="form-group">
+                <h5 class="card-title">Genre
+                <select class='genre form-control'>
+                    <option value=''></option>
+                    <option value='Fantasy'>Fantasy</option>
+                    <option value='Science Fiction'>Science Fiction</option>
+                    <option value='Adventure'>Adventure</option>
+                    <option value='Detective & Mystery'>Detective & Mystery</option>
+                    <option value='Horror'>Horror</option>
+                    <option value='Romance'>Romance</option>
+                    <option value='Personal Development'>Personal Development</option>
+                </select></h5>
+              </div>
+              <div class="form-group">
+                <h5 class="card-title">Description
+                
+                <textarea class="description form-control"></textarea></h5>
+              </div>
+              <div class="form-group">
+                <h5 class="card-title">Cover Image
+                
+                <input type="file" class="cover form-control" ></h5>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="postData()">Add Book</button>
+        </div>
+        <div class="user-data-div card" style="width: 50%;text-align: center;background-color: rgb(244, 207, 254);"></div>
+    </div>
+    <div style="background-color: rgb(252, 207, 207);">
+    <div class="container" >
+        <br>
+    <h1 class="justify-content-center" style="text-align: center;">BOOK SHELF</h1>
+    </div>
+    <div class="row" ></div>
+    </div>
+    </div>
+    <div id="popup" class="modal">
+        <div class="modal-dialog modal-dialog-centered">
+                 <div class="modal-content">
+                <div class="error-pop" style="color: red;border-style: dashed;visibility: hidden;"></div>
+                  <div class="modal-body">
+                    <h6>Title : <input type="text" class="name-pop"></h6>
+                    <h6>Genre : <select class='genre-pop'>
+                        <option value=''></option>
+                        <option value='Fantasy'>Fantasy</option>
+                        <option value='Science Fiction'>Science Fiction</option>
+                        <option value='Adventure'>Adventure</option>
+                        <option value='Detective & Mystery'>Detective & Mystery</option>
+                        <option value='Horror'>Horror</option>
+                        <option value='Romance'>Romance</option>
+                        <option value='Personal Development'>Personal Development</option>
+                      </select></h6>
+                    <h6>Description : </h6><textarea class="description-pop" cols="50" rows="3"></textarea>
+                    <h6>Cover Image : <input type="file" class="cover-pop"></h6>
+                    <button onclick="editData()">Update</button>
+                    </div>
+                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                 </div>
+        </div>
+ </div>
+</body>
+<script>
+    fetch(window.location.origin+'/accounts/user-data/',{headers: {"X-CSRFToken": '{{csrf_token}}','Authorization' : `token ${sessionStorage.getItem('token')}`}})
+    .then((res)=>{
+        if (res.ok){
+            res.json().then((resp)=>{
+                var userdatadiv = document.querySelector('.user-data-div')
+                userdatadiv.innerHTML += `<button type="button" class="btn btn-primary" onclick='logout()'>Logout</Button>
+                <div class="card-body">
+                <h3 class="card-title">Username : ${resp.username}</h3>
+                <h5 class="card-title">First name : ${resp.first_name}</h5>
+                <h5 class="card-title">Last name : ${resp.last_name}</h5>
+                <h5 class="card-title">Email : ${resp.email}</h5>
+                </div>`
+            })
+        }
+        else{
+            var div = document.querySelector('.error-pop')
+            div.style.visibility = 'visible'
+            res.json().then((resp)=>{div.innerHTML = `<p>Error : ${JSON.stringify(resp)}</p>`})
+        }})
+        .catch((err)=>{console.log(err)})
+
+    function logout(){
+        const formData = new FormData()
+        formData.append('token',sessionStorage.getItem('token'))
+        sessionStorage.removeItem('token')
+        fetch(window.location.origin+'/accounts/logout/',{method:"POST",headers: {"X-CSRFToken": '{{csrf_token}}'},body:formData})
+        .then((res)=>{
+            if (res.ok){
+                window.location.replace(window.location.origin+'/login/')
+            }
+            else{
+                var div = document.querySelector('.error')
+                div.style.visibility = 'visible'
+                res.json().then((resp)=>{div.innerHTML = `<p>Error : ${JSON.stringify(resp)}</p>`})
+            }})
+    }
+    function editData(){
+        const formData = new FormData()
+        var name = document.querySelector('.name-pop').value != '' ? formData.append('name',document.querySelector('.name-pop').value):console.log('no Title provided, so Title remain as it is')
+        var genre = document.querySelector('.genre-pop').value != '' ? formData.append('genre',document.querySelector('.genre-pop').value):console.log('no genre provided, so genre remain as it is')
+        var description = document.querySelector('.description-pop').value != '' ? formData.append('description',document.querySelector('.description-pop').value):console.log('no description provided, so description remain as it is')
+        var cover = document.querySelector('.cover-pop').files[0] != undefined ? formData.append('cover',document.querySelector('.cover-pop').files[0]):console.log('no cover provided, so cover remain as it is')
+        formData.append('id',sessionStorage.getItem('book_id'))
+        fetch(window.location.origin+'/books/',{
+            method:"PATCH",
+            headers: {
+                "X-CSRFToken": '{{csrf_token}}',
+                'Authorization' : `token ${sessionStorage.getItem('token')}`
+                },
+            body:formData
+            })
+            .then((res)=>{
+            if (res.ok){
+                window.location.reload()
+            }
+            else{
+                var div = document.querySelector('.error-pop')
+                div.style.visibility = 'visible'
+                res.json().then((resp)=>{div.innerHTML = `<p>Error : ${JSON.stringify(resp)}</p>`})
+            }})
+            .catch((err)=>{console.log(err)})
+    }
+    function postData(){
+        var name = document.querySelector('.name').value
+        var genre = document.querySelector('.genre').value
+        var description = document.querySelector('.description').value
+        var cover = document.querySelector('.cover').files[0]
+        const formData = new FormData()
+        formData.append('name',name)
+        formData.append('genre',genre)
+        formData.append('description',description)
+        formData.append('cover',cover)
+        fetch(window.location.origin+'/books/',{
+            method:"POST",
+            headers: {
+                "X-CSRFToken": '{{csrf_token}}',
+                'Authorization' : `token ${sessionStorage.getItem('token')}`
+                },
+            body:formData
+            })
+            .then((res)=>{
+            if (res.ok){
+                window.location.reload()
+            }
+            else{
+                var div = document.querySelector('.error')
+                div.style.visibility = 'visible'
+                res.json().then((resp)=>{div.innerHTML = `<p>Error : ${JSON.stringify(resp)}</p>`})
+            }})
+            .catch((err)=>{console.log(err)})
+    }
+    function edit(id){
+        sessionStorage.setItem('book_id', id)
+    }
+    function del(id){
+        fetch(window.location.origin+'/books/',{
+            method:"DELETE",
+            headers: {
+                "X-CSRFToken": '{{csrf_token}}',
+                "Accept": "application/json",
+                'Content-Type': 'application/json',
+                'Authorization' : `token ${sessionStorage.getItem('token')}`
+                },
+            body:JSON.stringify({'id':id})
+            })
+            .then((res)=>{
+            if (res.ok){
+                window.location.reload()
+            }
+            else{
+                var div = document.querySelector('.error')
+                div.style.visibility = 'visible'
+                res.json().then((resp)=>{div.innerHTML = `<p>Error : ${JSON.stringify(resp)}</p>`})
+            }})
+            .catch((err)=>{console.log(err)})
+        }
+
+    function getBookData(){
+        fetch(window.location.origin+'/books/',{
+            method:"GET",
+            headers: {
+                "X-CSRFToken": '{{csrf_token}}',
+                "Accept": "application/json",
+                'Content-Type': 'application/json',
+                'Authorization' : `token ${sessionStorage.getItem('token')}`
+                },
+            })
+        .then((res)=>{
+            if (res.ok){
+                var div = document.querySelector('.row')
+                div.style.visibility = 'visible'
+                res.json().then((resp)=>{resp.forEach(element => {
+                    div.innerHTML += `<div style='padding:2.5rem'>
+                    <div class="card" style="width: 18rem">
+                        <img class="card-img-top" style='height:28rem;' src=${element.cover} alt="Card image cap">
+                        <div class="card-body">
+                            <h5 class="card-title">Title : ${element.name}</h5>
+                            <h6 class="card-text">Genre : ${element.genre}</h6>
+                            <p class="card-text">${element.description}</p>
+                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup" onclick='edit(${element.id})'>Edit</button>
+                            <button type="button" class="btn btn-danger" onclick='del(${element.id})'>delete</button>
+                            </div>
+                            </div>
+                        </div>`
+                    })
+                })
+            }
+            else{
+                var div = document.querySelector('.error')
+                div.style.visibility = 'visible'
+                res.json().then((resp)=>{div.innerHTML = `<p>Error : ${JSON.stringify(resp)}</p>`})
+            }
+        })
+        .catch((err)=>{
+            console.log(err)
+        })
+    }
+    getBookData()
+</script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-fQybjgWLrvvRgtW6bFlB7jaZrFsaBXjsOMm/tB9LTS58ONXgqbR9W8oWht/amnpF" crossorigin="anonymous"></script>
+</html>
